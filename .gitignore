@@ -1,3 +1,5 @@
+.*
+!.gitignore
 *.py[cod]
 
 # C extensions
@@ -25,4 +27,5 @@ pip-log.txt
 # Unit test / coverage reports
 .coverage
 .tox
+.vscode
 nosetests.xml
