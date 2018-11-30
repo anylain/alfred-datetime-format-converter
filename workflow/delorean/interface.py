@@ -90,9 +90,9 @@ def stops(freq, interval=1, count=None, wkst=None, bysetpos=None,
         start = datetime_timezone(timezone)
 
     for dt in rrule(freq, interval=interval, count=count, wkst=None, bysetpos=None,
-          bymonth=None, bymonthday=None, byyearday=None, byeaster=None,
-          byweekno=None, byweekday=None, byhour=None, byminute=None,
-          bysecond=None, until=stop, dtstart=start):
+                    bymonth=None, bymonthday=None, byyearday=None, byeaster=None,
+                    byweekno=None, byweekday=None, byhour=None, byminute=None,
+                    bysecond=None, until=stop, dtstart=start):
         # make the delorean object
         # yield it.
         # doing this to make sure delorean receives a naive datetime.
@@ -102,7 +102,10 @@ def stops(freq, interval=1, count=None, wkst=None, bysetpos=None,
 
 
 def epoch(s):
-    dt = datetime.utcfromtimestamp(s)
+    if isinstance(s, datetime):
+        dt = s
+    else:
+        dt = datetime.utcfromtimestamp(s)
     return Delorean(datetime=dt, timezone=UTC)
 
 
@@ -115,6 +118,14 @@ def utcnow():
     Return a delorean object, with utcnow as the datetime
     """
     return Delorean()
+
+
+def utcnow_with_delta(delta):
+    """
+    Return a delorean object, with utcnow + delta as the datetime
+    """
+    dt = datetime.utcnow() + delta
+    return Delorean(datetime=dt, timezone=UTC)
 
 
 def now():

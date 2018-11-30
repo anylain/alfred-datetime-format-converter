@@ -2,7 +2,9 @@
 
 import alfred
 import calendar
-from delorean import utcnow, parse, epoch
+import re
+from datetime import timedelta, datetime
+from delorean import utcnow, parse, epoch, utcnow_with_delta
 
 
 def process(query_str):
@@ -18,17 +20,61 @@ def parse_query_value(query_str):
     """ Return value for the query string """
     try:
         query_str = str(query_str).strip('"\' ')
-        if query_str == 'now':
-            d = utcnow()
+        if query_str.startswith('localnow'):
+            d = get_offsetted_time(datetime.now(), query_str)
+        elif query_str.startswith('localtoday'):
+            d = get_offsetted_time(datetime.now().replace(
+                hour=0, minute=0, second=0, microsecond=0), query_str)
+        elif query_str.startswith('now'):
+            d = get_offsetted_time(datetime.utcnow(), query_str)
+        elif query_str.startswith('today'):
+            d = get_offsetted_time(datetime.utcnow().replace(
+                hour=0, minute=0, second=0, microsecond=0), query_str)
+        elif query_str[0] in ("+", "-"):
+            d = get_offsetted_time(datetime.utcnow(), query_str)
         else:
             # Parse datetime string or timestamp
             try:
-                d = epoch(float(query_str))
+                ts = float(query_str)
+                try:
+                    d = epoch(ts)
+                except:
+                    d = epoch(ts/1000)
             except ValueError:
                 d = parse(str(query_str))
     except (TypeError, ValueError):
         d = None
     return d
+
+
+def get_offsetted_time(dt, query_str):
+    m = re.compile(r".*?(?P<action>[\+\-])(?P<policy>.+)").match(query_str)
+    if not m:
+        return epoch(dt)
+
+    action = m.group("action")
+    policy = m.group("policy")
+
+    subPatterns = [
+        r"(?:(?P<days>\d+)d)?",
+        r"(?:(?P<hours>\d+)h)?",
+        r"(?:(?P<minutes>\d+)m)?",
+        r"(?:(?P<seconds>\d+)s)?",
+    ]
+    pattern = "".join(subPatterns)
+    pattern = re.compile(pattern, re.I)
+    m = pattern.match(policy)
+    if m:
+        delta_kwargs = {}
+        for k, v in m.groupdict().items():
+            if v:
+                delta_kwargs[k] = int(v)
+        delta = timedelta(**delta_kwargs)
+        if action == "-":
+            delta = -delta
+        return epoch(dt + delta)
+
+    return epoch(dt)
 
 
 def alfred_items_for_value(value):
